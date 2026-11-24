@@ -1,0 +1,3 @@
+// Backend URL baked into the deployed UI. Leave empty and set the engine URL
+// in the app (Models & Keys -> Clipper server) or via ?server=https://...
+window.CLIPPER_API = "";

@@ -1,0 +1,9 @@
+.venv
+__pycache__
+*.pyc
+.env
+output
+tests
+dist
+.git
+.DS_Store

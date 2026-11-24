@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Clipper</title>
+<style>
+:root { color-scheme:dark; --bg:#0b0d10; --panel:#14181e; --panel2:#0e1217; --line:#222a34; --text:#e8ecf1;
+  --muted:#8b95a5; --accent:#6fb3ff; --gold:#ffd75c; --good:#39b37a; --bad:#e5534b; }
+* { box-sizing:border-box; }
+body { margin:0; padding:40px 24px 90px; background:radial-gradient(900px 420px at 18% -10%, #16202b 0%, var(--bg) 62%);
+  color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans",sans-serif; }
+.wrap { max-width:1120px; margin:0 auto; }
+header { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap; margin-bottom:22px; }
+h1 { font-size:30px; letter-spacing:-.03em; margin:0 0 6px; }
+h1 span { color:var(--accent); }
+.sub { color:var(--muted); font-size:14px; }
+.tabs { display:flex; gap:8px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:5px; }
+.tabs button { padding:9px 16px; border:0; border-radius:8px; background:transparent; color:var(--muted);
+  font-size:13px; font-weight:600; cursor:pointer; }
+.tabs button.on { background:#1d2836; color:var(--text); }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:22px; }
+.panel + .panel { margin-top:18px; }
+.tabpane { display:none; }
+.tabpane.on { display:block; }
+form { display:flex; flex-direction:column; gap:18px; }
+.row { display:flex; gap:12px; flex-wrap:wrap; }
+.grow { flex:1 1 380px; }
+label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:6px; }
+input[type=text], input[type=password], input[type=number], select { width:100%; padding:11px 13px; background:var(--panel2);
+  color:var(--text); border:1px solid var(--line); border-radius:10px; font-size:14px; outline:none; }
+input:focus, select:focus { border-color:#3b6f9e; }
+input[type=file] { font-size:13px; color:var(--muted); }
+.opts { display:flex; gap:18px; flex-wrap:wrap; align-items:flex-end; }
+.opts > div { min-width:118px; }
+.check { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text); padding-bottom:10px; }
+.check input { width:16px; height:16px; accent-color:var(--accent); }
+button.primary { padding:13px 26px; border:none; border-radius:10px; background:var(--accent); color:#06121f;
+  font-weight:700; font-size:15px; cursor:pointer; }
+button.primary:disabled { opacity:.5; cursor:not-allowed; }
+button.ghost { padding:10px 16px; border:1px solid var(--line); border-radius:9px; background:var(--panel2);
+  color:var(--text); font-size:13px; font-weight:600; cursor:pointer; }
+button.ghost:hover { border-color:#3b6f9e; }
+.hint { font-size:12px; color:var(--muted); line-height:1.55; }
+.hint b { color:#b8c4d3; font-weight:600; }
+.section-label { font-size:12px; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); margin-bottom:10px; }
+.tpl-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(152px,1fr)); gap:14px; }
+.tpl { border:1px solid var(--line); border-radius:12px; background:var(--panel2); padding:8px; cursor:pointer;
+  text-align:left; color:var(--text); transition:border-color .15s, transform .15s; }
+.tpl:hover { transform:translateY(-2px); border-color:#3b6f9e; }
+.tpl.sel { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+.thumb { position:relative; aspect-ratio:9/16; border-radius:8px; overflow:hidden; margin-bottom:8px;
+  background:radial-gradient(120% 90% at 70% 20%, #35404d 0%, #1a212a 55%, #0d1116 100%); }
+.thumb::after { content:""; position:absolute; width:46%; height:34%; left:27%; top:26%; border-radius:50% 50% 42% 42%;
+  background:radial-gradient(circle at 50% 35%, #5c6877, #2b3440 72%); opacity:.85; }
+.thumb .hook { position:absolute; left:8%; right:8%; top:7%; z-index:2; text-align:center; line-height:1.15;
+  font-weight:800; padding:3px 4px; }
+.thumb .caps { position:absolute; left:5%; right:5%; bottom:12%; z-index:2; text-align:center; font-weight:800;
+  line-height:1.22; letter-spacing:.01em; }
+.thumb .caps.boxed { background:var(--box); padding:4px 3px; border-radius:2px; }
+.tpl-name { font-size:12px; font-weight:700; }
+.tpl-desc { font-size:11px; color:var(--muted); line-height:1.4; margin-top:2px; }
+.model-block { border:1px solid var(--line); border-radius:12px; padding:16px; background:var(--panel2); }
+.model-block + .model-block { margin-top:14px; }
+.model-block h3 { margin:0 0 12px; font-size:14px; }
+.mgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; }
+.test-row { display:flex; align-items:center; gap:12px; margin-top:12px; flex-wrap:wrap; }
+.test-out { font-size:12px; color:var(--muted); }
+.test-out.ok { color:var(--good); }
+.test-out.err { color:#ff8c85; }
+.status { margin-top:22px; display:none; }
+.status.on { display:block; }
+.status-head { display:flex; align-items:center; gap:10px; font-size:14px; margin-bottom:10px; }
+.dot { width:9px; height:9px; border-radius:50%; background:#f0b429; animation:pulse 1.2s infinite; }
+.dot.done { background:var(--good); animation:none; }
+.dot.err { background:var(--bad); animation:none; }
+@keyframes pulse { 50% { opacity:.25; } }
+pre.log { margin:0; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:14px;
+  height:220px; overflow:auto; font-size:12px; line-height:1.55; color:#a9b6c6; white-space:pre-wrap; }
+.err { color:#ff8c85; font-size:13px; margin-top:10px; white-space:pre-wrap; }
+.results { margin-top:34px; display:none; }
+.results.on { display:block; }
+.results h2 { font-size:18px; margin:0 0 14px; }
+.grid { display:grid; gap:22px; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; }
+.video { background:#000; display:flex; justify-content:center; }
+video { width:100%; max-height:470px; display:block; }
+.body { padding:14px 16px 18px; display:flex; flex-direction:column; gap:8px; flex:1; }
+.title { font-weight:600; font-size:15px; line-height:1.35; }
+.hook { color:var(--gold); font-size:13px; }
+.meta { display:flex; gap:10px; align-items:center; font-size:12px; color:var(--muted); flex-wrap:wrap; }
+.score { background:#1f6f43; color:#d6ffe8; border-radius:999px; padding:2px 9px; font-weight:600; }
+.links { margin-top:auto; display:flex; gap:14px; font-size:13px; }
+a { color:var(--accent); text-decoration:none; }
+a:hover { text-decoration:underline; }
+.banner { background:#3a2410; border:1px solid #7a4a17; color:#ffd9a3; padding:12px 16px; border-radius:10px;
+  font-size:13px; margin-bottom:18px; display:none; align-items:center; justify-content:space-between; gap:16px; }
+.banner.on { display:flex; }
+.banner button { background:#7a4a17; color:#ffe9c9; border:0; border-radius:7px; padding:7px 12px; cursor:pointer; font-weight:600; }
+.save-state { font-size:12px; color:var(--muted); margin-left:auto; }
+@media (max-width:640px) { body { padding:24px 14px 60px; } header { align-items:flex-start; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>AI <span>Clipper</span></h1>
+      <div class="sub">Long video in, captioned 9:16 clips out. Pick a template, pick a model, go.</div>
+    </div>
+    <nav class="tabs" id="mainTabs">
+      <button data-tab="create" class="on">Create</button>
+      <button data-tab="models">Models &amp; Keys</button>
+    </nav>
+  </header>
+
+  <div id="keyBanner" class="banner">
+    <span id="keyBannerText"></span>
+    <button type="button" id="keyBannerBtn">Open Models &amp; Keys</button>
+  </div>
+
+  <section id="tab-create" class="tabpane on">
+    <div class="panel">
+      <form id="form">
+        <div class="row">
+          <div class="grow">
+            <label for="url">Video URL or local path</label>
+            <input id="url" type="text" placeholder="https://youtube.com/watch?v=...  or  /home/me/podcast.mp4" autocomplete="off">
+          </div>
+          <div style="min-width:220px">
+            <label for="file">or upload a file</label>
+            <input id="file" type="file" accept="video/*">
+          </div>
+        </div>
+
+        <div>
+          <div class="section-label">Caption template</div>
+          <div id="templates" class="tpl-grid"></div>
+        </div>
+
+        <div class="opts">
+          <div>
+            <label for="preset">Clip focus</label>
+            <select id="preset"></select>
+          </div>
+          <div>
+            <label for="quality">Render quality</label>
+            <select id="quality"></select>
+          </div>
+          <div>
+            <label for="count">Clips</label>
+            <input id="count" type="number" min="1" max="20" value="5">
+          </div>
+          <div>
+            <label for="crop">Framing</label>
+            <select id="crop">
+              <option value="track">Face tracked</option>
+              <option value="blur">Blurred background</option>
+              <option value="center">Center crop</option>
+            </select>
+          </div>
+          <div>
+            <label for="minLen">Min seconds</label>
+            <input id="minLen" type="number" min="5" max="180" value="15">
+          </div>
+          <div>
+            <label for="maxLen">Max seconds</label>
+            <input id="maxLen" type="number" min="10" max="300" value="60">
+          </div>
+          <div>
+            <label for="concurrency">Parallel renders</label>
+            <select id="concurrency">
+              <option value="1">1 (safest)</option>
+              <option value="2">2 (recommended)</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
+          </div>
+          <label class="check"><input id="captions" type="checkbox" checked> Captions</label>
+          <label class="check"><input id="hook" type="checkbox" checked> Hook overlay</label>
+          <button id="go" class="primary" type="submit">Generate clips</button>
+        </div>
+        <div class="hint">Long videos are transcribed in parallel chunks, then clips render in parallel. For
+          multi-hour videos use <b>Turbo 720p</b> and <b>2 parallel renders</b>. Frames stay local; only audio
+          (and small transcript windows) reaches a cloud model.</div>
+      </form>
+
+      <div id="status" class="status">
+        <div class="status-head"><span id="dot" class="dot"></span><span id="statusText">Starting...</span></div>
+        <pre id="log" class="log"></pre>
+        <div id="error" class="err"></div>
+      </div>
+    </div>
+
+    <section id="results" class="results">
+      <h2 id="resultsTitle">Your clips</h2>
+      <div id="grid" class="grid"></div>
+    </section>
+  </section>
+
+  <section id="tab-models" class="tabpane">
+    <div class="panel">
+      <div class="row" style="align-items:center; margin-bottom:16px">
+        <div class="tabs" id="modelTabs">
+          <button type="button" data-mode="online" class="on">Online models</button>
+          <button type="button" data-mode="local">Local models</button>
+        </div>
+        <span id="saveState" class="save-state"></span>
+      </div>
+
+      <div class="model-block" style="margin-bottom:16px">
+        <h3>Clipper server</h3>
+        <div class="mgrid">
+          <div style="grid-column:span 2">
+            <label for="apiBase">Backend URL</label>
+            <input id="apiBase" type="text" placeholder="blank = the server that serves this page" autocomplete="off">
+          </div>
+        </div>
+        <div class="hint" style="margin-top:10px">Only needed when this page is hosted separately from the clipper engine
+          (e.g. on Vercel). Enter the engine's public URL, e.g. <b>https://clips.example.com</b>. The page reloads when you change it.</div>
+      </div>
+
+      <div id="onlinePane">
+        <div class="model-block">
+          <h3>Moment picker &mdash; online LLM</h3>
+          <div class="mgrid">
+            <div>
+              <label for="mProvider">Provider</label>
+              <select id="mProvider">
+                <option value="groq">Groq</option>
+                <option value="openai">OpenAI-compatible (OpenAI, OpenRouter, Together, ...)</option>
+                <option value="gemini">Google Gemini</option>
+              </select>
+            </div>
+            <div>
+              <label for="mModel">Model</label>
+              <input id="mModel" type="text" placeholder="llama-3.3-70b-versatile" autocomplete="off">
+            </div>
+            <div>
+              <label for="mKey">API key</label>
+              <input id="mKey" type="password" placeholder="paste key (or use .env)" autocomplete="off">
+            </div>
+            <div>
+              <label for="mBase">Base URL</label>
+              <input id="mBase" type="text" placeholder="https://api.groq.com/openai/v1" autocomplete="off">
+            </div>
+          </div>
+          <div class="test-row">
+            <button type="button" class="ghost" id="mTestBtn">Test LLM</button>
+            <span class="test-out" id="mTestOut"></span>
+          </div>
+        </div>
+
+        <div class="model-block">
+          <h3>Transcription &mdash; online ASR</h3>
+          <div class="mgrid">
+            <div>
+              <label for="aProvider">Provider</label>
+              <select id="aProvider">
+                <option value="groq">Groq Whisper</option>
+                <option value="openai">OpenAI Whisper / compatible</option>
+              </select>
+            </div>
+            <div>
+              <label for="aModel">Model</label>
+              <input id="aModel" type="text" placeholder="whisper-large-v3-turbo" autocomplete="off">
+            </div>
+            <div>
+              <label for="aKey">API key</label>
+              <input id="aKey" type="password" placeholder="blank = reuse LLM key" autocomplete="off">
+            </div>
+            <div>
+              <label for="aBase">Base URL</label>
+              <input id="aBase" type="text" placeholder="https://api.groq.com/openai/v1" autocomplete="off">
+            </div>
+          </div>
+          <div class="test-row">
+            <button type="button" class="ghost" id="aTestBtn">Test transcription</button>
+            <span class="test-out" id="aTestOut"></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="localPane" hidden>
+        <div class="model-block">
+          <h3>Moment picker &mdash; local LLM</h3>
+          <div class="mgrid">
+            <div>
+              <label for="lBackend">Backend</label>
+              <select id="lBackend">
+                <option value="ollama">Ollama (port 11434)</option>
+                <option value="lmstudio">LM Studio (port 1234)</option>
+                <option value="custom">Custom OpenAI-compatible URL</option>
+              </select>
+            </div>
+            <div>
+              <label for="lModel">Model</label>
+              <input id="lModel" type="text" placeholder="llama3.1:8b" autocomplete="off">
+            </div>
+            <div style="grid-column:span 2">
+              <label for="lBase">Base URL</label>
+              <input id="lBase" type="text" placeholder="http://127.0.0.1:11434/v1" autocomplete="off">
+            </div>
+          </div>
+          <div class="test-row">
+            <button type="button" class="ghost" id="lTestBtn">Test local LLM</button>
+            <span class="test-out" id="lTestOut"></span>
+          </div>
+          <div class="hint" style="margin-top:10px">Ollama: <b>ollama pull llama3.1:8b</b> then
+            <b>OLLAMA_NUM_PARALLEL=1 ollama serve</b>. LM Studio: start the local server on port 1234.</div>
+        </div>
+
+        <div class="model-block">
+          <h3>Transcription &mdash; local Whisper (CPU)</h3>
+          <div class="mgrid">
+            <div>
+              <label for="laModel">Model size</label>
+              <select id="laModel">
+                <option value="tiny">tiny (fastest, rough)</option>
+                <option value="base">base (good balance)</option>
+                <option value="small">small (better accuracy, slow)</option>
+                <option value="medium">medium (very slow on CPU)</option>
+              </select>
+            </div>
+          </div>
+          <div class="test-row">
+            <button type="button" class="ghost" id="laTestBtn">Test local Whisper</button>
+            <span class="test-out" id="laTestOut"></span>
+          </div>
+          <div class="hint" style="margin-top:10px">Runs offline with faster-whisper. The model downloads on first use.
+            CPU transcription is much slower than cloud ASR and is usually the bottleneck on multi-hour videos.</div>
+        </div>
+      </div>
+
+      <div class="hint" style="margin-top:16px">
+        Keys are kept in this browser's localStorage and sent only to this local server, never stored server-side.
+        Leaving a key blank uses the key in <b>.env</b> when one exists. <b>Do not expose this server to the internet.</b>
+      </div>
+      <div class="test-row">
+        <button type="button" class="ghost" id="resetSettings">Reset saved settings</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const LS_KEY = "clipper.ui.v2";
+const API_KEY = "clipper.api.base";
+
+function normalizeBase(url) {
+  url = String(url || "").trim();
+  return url ? url.replace(/\/+$/, "") : "";
+}
+
+function resolveApiBase() {
+  const fromQuery = new URLSearchParams(location.search).get("server");
+  if (fromQuery) {
+    const value = normalizeBase(fromQuery);
+    try { localStorage.setItem(API_KEY, value); } catch (err) { /* storage disabled */ }
+    return value;
+  }
+  let saved = "";
+  try { saved = normalizeBase(localStorage.getItem(API_KEY)); } catch (err) { /* storage disabled */ }
+  return saved || normalizeBase(window.CLIPPER_API);
+}
+
+let API = "";
+const apiUrl = (path) => (String(path).startsWith("http") ? path : API + path);
+const ONLINE_BASE = {
+  groq: "https://api.groq.com/openai/v1",
+  openai: "https://api.openai.com/v1",
+  gemini: "https://generativelanguage.googleapis.com/v1beta",
+};
+const ONLINE_MODEL = {
+  groq: "llama-3.3-70b-versatile",
+  openai: "gpt-4o-mini",
+  gemini: "gemini-2.5-flash",
+};
+const ASR_BASE = { groq: "https://api.groq.com/openai/v1", openai: "https://api.openai.com/v1" };
+const ASR_MODEL = { groq: "whisper-large-v3-turbo", openai: "whisper-1" };
+const LOCAL_BASE = { ollama: "http://127.0.0.1:11434/v1", lmstudio: "http://127.0.0.1:1234/v1" };
+
+let catalog = null;
+let timer = null;
+const state = {
+  tab: "create",
+  mode: "online",
+  template: "bold-pop",
+  preset: "general",
+  quality: "standard",
+  concurrency: 2,
+  online: {
+    llm: { provider: "groq", model: "", base_url: "", api_key: "" },
+    asr: { provider: "groq", model: "", base_url: "", api_key: "" },
+  },
+  local: {
+    backend: "ollama",
+    llm: { model: "llama3.1:8b", base_url: "http://127.0.0.1:11434/v1" },
+    asr: { model: "base" },
+  },
+};
+
+function deepMerge(base, extra) {
+  for (const [key, value] of Object.entries(extra || {})) {
+    if (value && typeof value === "object" && !Array.isArray(value) && base[key] && typeof base[key] === "object") {
+      deepMerge(base[key], value);
+    } else if (value !== undefined) {
+      base[key] = value;
+    }
+  }
+  return base;
+}
+
+function save() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (err) { /* storage disabled */ }
+  $("saveState").textContent = "Saved locally";
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) deepMerge(state, JSON.parse(raw));
+  } catch (err) { /* ignore corrupt state */ }
+}
+
+function esc(text) {
+  return String(text ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function fmtClock(seconds) {
+  seconds = Math.max(0, Math.round(seconds));
+  const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60), s = seconds % 60;
+  return h ? `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}` : `${m}:${String(s).padStart(2,"0")}`;
+}
+
+function switchTab(tab) {
+  state.tab = tab;
+  save();
+  for (const btn of $("mainTabs").querySelectorAll("button")) btn.classList.toggle("on", btn.dataset.tab === tab);
+  $("tab-create").classList.toggle("on", tab === "create");
+  $("tab-models").classList.toggle("on", tab === "models");
+}
+
+function switchMode(mode) {
+  state.mode = mode;
+  save();
+  for (const btn of $("modelTabs").querySelectorAll("button")) btn.classList.toggle("on", btn.dataset.mode === mode);
+  $("onlinePane").hidden = mode !== "online";
+  $("localPane").hidden = mode !== "local";
+  updateBanner();
+}
+
+function templateCard(tpl) {
+  const s = tpl.style;
+  const capSize = Math.max(8, Math.round(tpl.size * 0.135));
+  const hookSize = Math.max(7, Math.round(tpl.hook_size * 0.135));
+  const outline = `-1px -1px 0 ${s.outline}, 1px -1px 0 ${s.outline}, -1px 1px 0 ${s.outline}, 1px 1px 0 ${s.outline}`;
+  const capStyle = `color:${s.primary};font-size:${capSize}px;${tpl.boxed ? "" : `text-shadow:${outline};`}`;
+  const hl = `<span style="color:${s.highlight}">${tpl.uppercase ? "EVERYTHING" : "everything"}</span>`;
+  const first = tpl.uppercase ? "THIS CHANGES" : "This changes";
+  const capClass = tpl.boxed ? "caps boxed" : "caps";
+  const boxStyle = tpl.boxed ? `--box:${s.outline};` : "";
+  let hook = "";
+  if (s.hook_mode === "banner") {
+    hook = `<div class="hook" style="background:${s.hook_bg};color:${s.hook_fg};font-size:${hookSize}px;border-radius:2px">WATCH THIS</div>`;
+  } else if (s.hook_mode === "outline") {
+    hook = `<div class="hook" style="color:${s.hook_fg};font-size:${hookSize}px;text-shadow:0 0 3px #000, 2px 2px 0 #000">WATCH THIS</div>`;
+  }
+  const selected = tpl.key === state.template ? " sel" : "";
+  return `<button type="button" class="tpl${selected}" data-template="${esc(tpl.key)}" title="${esc(tpl.description)}">
+    <div class="thumb" style="${boxStyle}">
+      ${hook}
+      <div class="${capClass}" style="${capStyle}">${first}<br>${hl}</div>
+    </div>
+    <div class="tpl-name">${esc(tpl.name)}</div>
+    <div class="tpl-desc">${esc(tpl.description)}</div>
+  </button>`;
+}
+
+function renderTemplates() {
+  $("templates").innerHTML = catalog.templates.map(templateCard).join("");
+}
+
+function fillSelect(select, items, value, labelFn) {
+  select.innerHTML = items.map((item) => `<option value="${esc(item.key)}">${esc(labelFn(item))}</option>`).join("");
+  select.value = value;
+}
+
+function needsKey(provider) {
+  return ["groq", "openai", "gemini"].includes(provider);
+}
+
+function updateBanner() {
+  const show = (text) => {
+    $("keyBanner").classList.add("on");
+    $("keyBannerText").textContent = text;
+  };
+  const hide = () => $("keyBanner").classList.remove("on");
+  if (!catalog) return;
+  const defaults = catalog.defaults;
+  if (state.mode === "local") {
+    if (!defaults) return hide();
+    return hide();
+  }
+  const llm = state.online.llm;
+  const asr = state.online.asr;
+  const llmMissing = needsKey(llm.provider) && !llm.api_key && !(defaults.llm.has_key && defaults.llm.provider === llm.provider);
+  const reuseAsr = asr.provider === llm.provider && llm.api_key;
+  const asrMissing = needsKey(asr.provider) && !asr.api_key && !reuseAsr && !(defaults.asr.has_key && defaults.asr.provider === asr.provider);
+  if (llmMissing || asrMissing) {
+    show(`${llmMissing ? "Moment picker" : "Transcription"} needs an API key. Add one in Models & Keys, or switch to local models.`);
+  } else {
+    hide();
+  }
+}
+
+function applyStateToInputs() {
+  $("apiBase").value = API;
+  $("mProvider").value = state.online.llm.provider;
+  $("mModel").value = state.online.llm.model;
+  $("mModel").placeholder = ONLINE_MODEL[state.online.llm.provider] || "model name";
+  $("mKey").value = state.online.llm.api_key;
+  $("mBase").value = state.online.llm.base_url;
+  $("mBase").placeholder = ONLINE_BASE[state.online.llm.provider] || "base URL";
+
+  $("aProvider").value = state.online.asr.provider;
+  $("aModel").value = state.online.asr.model;
+  $("aModel").placeholder = ASR_MODEL[state.online.asr.provider] || "whisper model";
+  $("aKey").value = state.online.asr.api_key;
+  $("aBase").value = state.online.asr.base_url;
+  $("aBase").placeholder = ASR_BASE[state.online.asr.provider] || "base URL";
+
+  $("lBackend").value = state.local.backend;
+  $("lModel").value = state.local.llm.model;
+  $("lBase").value = state.local.llm.base_url;
+  $("laModel").value = state.local.asr.model;
+
+  $("quality").value = state.quality;
+  $("preset").value = state.preset;
+  $("concurrency").value = String(state.concurrency);
+  switchMode(state.mode);
+  switchTab(state.tab);
+}
+
+function readInputs() {
+  state.online.llm = {
+    provider: $("mProvider").value,
+    model: $("mModel").value.trim(),
+    base_url: $("mBase").value.trim(),
+    api_key: $("mKey").value,
+  };
+  state.online.asr = {
+    provider: $("aProvider").value,
+    model: $("aModel").value.trim(),
+    base_url: $("aBase").value.trim(),
+    api_key: $("aKey").value,
+  };
+  state.local.backend = $("lBackend").value;
+  state.local.llm = { model: $("lModel").value.trim(), base_url: $("lBase").value.trim() };
+  state.local.asr = { model: $("laModel").value };
+  state.quality = $("quality").value;
+  state.preset = $("preset").value;
+  state.concurrency = Number($("concurrency").value) || 2;
+  save();
+  updateBanner();
+}
+
+function modelPayload() {
+  if (state.mode === "local") {
+    const backend = state.local.backend;
+    return {
+      llm: {
+        provider: backend === "ollama" ? "ollama" : "openai",
+        model: state.local.llm.model,
+        api_key: "",
+        base_url: state.local.llm.base_url || LOCAL_BASE[backend] || "",
+      },
+      asr: { provider: "local", model: state.local.asr.model, api_key: "", base_url: "" },
+    };
+  }
+  const llm = { ...state.online.llm };
+  const asr = { ...state.online.asr };
+  if (!asr.api_key && llm.api_key && asr.provider === llm.provider) asr.api_key = llm.api_key;
+  return { llm, asr };
+}
+
+function showStatus() {
+  $("status").classList.add("on");
+  $("error").textContent = "";
+  $("dot").className = "dot";
+  $("results").classList.remove("on");
+}
+
+function setLogs(lines) {
+  const pre = $("log");
+  pre.textContent = lines.join("\n");
+  pre.scrollTop = pre.scrollHeight;
+}
+
+async function uploadIfNeeded() {
+  const file = $("file").files[0];
+  if (!file) return $("url").value.trim();
+  $("statusText").textContent = "Uploading file...";
+  const data = new FormData();
+  data.append("file", file);
+  const res = await fetch(apiUrl("/api/upload"), { method: "POST", body: data });
+  if (!res.ok) throw new Error(await res.text());
+  return (await res.json()).path;
+}
+
+async function start(event) {
+  event.preventDefault();
+  if (timer) clearTimeout(timer);
+  readInputs();
+  $("go").disabled = true;
+  showStatus();
+  try {
+    const input = await uploadIfNeeded();
+    if (!input) throw new Error("Paste a video URL, a local path, or choose a file.");
+    $("statusText").textContent = "Queueing job...";
+    const models = modelPayload();
+    const payload = {
+      input,
+      count: Number($("count").value) || 5,
+      min_len: Number($("minLen").value) || 15,
+      max_len: Number($("maxLen").value) || 60,
+      crop: $("crop").value,
+      captions: $("captions").checked,
+      hook: $("hook").checked,
+      template: state.template,
+      preset: state.preset,
+      quality: state.quality,
+      render_concurrency: state.concurrency,
+      llm: models.llm,
+      asr: models.asr,
+    };
+    const res = await fetch(apiUrl("/api/jobs"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(detail.detail || "could not start job");
+    }
+    poll((await res.json()).id);
+  } catch (err) {
+    $("dot").className = "dot err";
+    $("statusText").textContent = "Failed";
+    $("error").textContent = err.message;
+    $("go").disabled = false;
+  }
+}
+
+async function poll(id) {
+  try {
+    const res = await fetch(apiUrl(`/api/jobs/${id}`));
+    if (!res.ok) throw new Error("lost the job");
+    const job = await res.json();
+    setLogs(job.logs || []);
+    if (job.status === "queued") {
+      $("statusText").textContent = "Queued...";
+      timer = setTimeout(() => poll(id), 1500);
+      return;
+    }
+    if (job.status === "running") {
+      $("statusText").textContent = "Working...";
+      timer = setTimeout(() => poll(id), 1500);
+      return;
+    }
+    if (job.status === "error") {
+      $("dot").className = "dot err";
+      $("statusText").textContent = "Failed";
+      $("error").textContent = job.error || "unknown error";
+      $("go").disabled = false;
+      return;
+    }
+    $("dot").className = "dot done";
+    $("statusText").textContent = `Done in ${Math.round(job.result.elapsed_seconds)}s`;
+    render(job.result);
+    $("go").disabled = false;
+  } catch (err) {
+    $("dot").className = "dot err";
+    $("statusText").textContent = "Failed";
+    $("error").textContent = err.message;
+    $("go").disabled = false;
+  }
+}
+
+function render(result) {
+  const tpl = catalog.templates.find((t) => t.key === result.options.template);
+  $("resultsTitle").innerHTML = `${result.clips.length} clips &middot; ${esc(tpl ? tpl.name : result.options.template)} &middot;
+    ${esc(result.options.quality)} &middot; <a href="${esc(apiUrl(result.gallery_url))}" target="_blank" rel="noopener">open gallery</a>`;
+  const grid = $("grid");
+  grid.innerHTML = "";
+  for (const clip of result.clips) {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="video"><video controls preload="metadata" poster="${esc(apiUrl(clip.poster_url))}">
+        <source src="${esc(apiUrl(clip.url))}" type="video/mp4"></video></div>
+      <div class="body">
+        <div class="title">${esc(clip.title)}</div>
+        <div class="hook">${esc(clip.hook)}</div>
+        <div class="meta"><span class="score">${esc(clip.score)}</span>
+          <span>${fmtClock(clip.start)} - ${fmtClock(clip.end)}</span><span>${Math.round(clip.duration)}s</span>
+          <span>${esc(clip.width)}x${esc(clip.height)}</span></div>
+        <div class="links"><a href="${esc(apiUrl(clip.url))}" download>Download mp4</a>
+          <a href="${esc(apiUrl(clip.srt_url))}" download>SRT</a></div>
+      </div>`;
+    grid.appendChild(card);
+  }
+  $("results").classList.add("on");
+}
+
+async function runTest(kind, payload, out) {
+  out.className = "test-out";
+  out.textContent = kind === "asr" ? "Testing (local models download on first run)..." : "Testing...";
+  try {
+    const res = await fetch(apiUrl("/api/test"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind, ...payload }),
+    });
+    const data = await res.json().catch(() => ({ detail: res.statusText }));
+    if (!res.ok) throw new Error(data.detail || "test failed");
+    out.className = "test-out ok";
+    out.textContent = kind === "llm"
+      ? `${data.provider}/${data.model} OK in ${data.seconds}s`
+      : `${data.provider}/${data.model} OK in ${data.seconds}s · ${data.words} words · ${data.language || "?"}`;
+  } catch (err) {
+    out.className = "test-out err";
+    out.textContent = err.message;
+  }
+}
+
+function bind() {
+  $("mainTabs").addEventListener("click", (event) => {
+    const btn = event.target.closest("button[data-tab]");
+    if (btn) switchTab(btn.dataset.tab);
+  });
+  $("keyBannerBtn").addEventListener("click", () => switchTab("models"));
+  $("modelTabs").addEventListener("click", (event) => {
+    const btn = event.target.closest("button[data-mode]");
+    if (btn) switchMode(btn.dataset.mode);
+  });
+  $("templates").addEventListener("click", (event) => {
+    const card = event.target.closest("button[data-template]");
+    if (!card) return;
+    state.template = card.dataset.template;
+    save();
+    renderTemplates();
+  });
+  for (const id of ["mProvider", "mModel", "mKey", "mBase", "aProvider", "aModel", "aKey", "aBase",
+    "lBackend", "lModel", "lBase", "laModel", "quality", "preset", "concurrency"]) {
+    $(id).addEventListener("change", readInputs);
+    $(id).addEventListener("input", readInputs);
+  }
+  $("mProvider").addEventListener("change", () => {
+    state.online.llm.base_url = "";
+    $("mBase").value = "";
+    $("mBase").placeholder = ONLINE_BASE[$("mProvider").value] || "base URL";
+    $("mModel").placeholder = ONLINE_MODEL[$("mProvider").value] || "model";
+    readInputs();
+  });
+  $("aProvider").addEventListener("change", () => {
+    state.online.asr.base_url = "";
+    $("aBase").value = "";
+    $("aBase").placeholder = ASR_BASE[$("aProvider").value] || "base URL";
+    $("aModel").placeholder = ASR_MODEL[$("aProvider").value] || "whisper model";
+    readInputs();
+  });
+  $("lBackend").addEventListener("change", () => {
+    const backend = $("lBackend").value;
+    state.local.llm.base_url = LOCAL_BASE[backend] || "";
+    $("lBase").value = state.local.llm.base_url;
+    readInputs();
+  });
+  $("mTestBtn").addEventListener("click", () => {
+    readInputs();
+    runTest("llm", modelPayload().llm, $("mTestOut"));
+  });
+  $("aTestBtn").addEventListener("click", () => {
+    readInputs();
+    runTest("asr", modelPayload().asr, $("aTestOut"));
+  });
+  $("lTestBtn").addEventListener("click", () => {
+    readInputs();
+    runTest("llm", modelPayload().llm, $("lTestOut"));
+  });
+  $("laTestBtn").addEventListener("click", () => {
+    readInputs();
+    runTest("asr", modelPayload().asr, $("laTestOut"));
+  });
+  $("resetSettings").addEventListener("click", () => {
+    localStorage.removeItem(LS_KEY);
+    location.reload();
+  });
+  $("apiBase").addEventListener("change", () => {
+    const value = normalizeBase($("apiBase").value);
+    try { localStorage.setItem(API_KEY, value); } catch (err) { /* storage disabled */ }
+    location.reload();
+  });
+  $("form").addEventListener("submit", start);
+}
+
+async function init() {
+  API = resolveApiBase();
+  load();
+  bind();
+  try {
+    catalog = await (await fetch(apiUrl("/api/catalog"))).json();
+  } catch (err) {
+    $("keyBanner").classList.add("on");
+    $("keyBannerText").textContent = `Could not reach the clipper server${API ? ` at ${API}` : ""}. Open Models & Keys to set the backend URL.`;
+    return;
+  }
+  const defaults = catalog.defaults;
+  if (!localStorage.getItem(LS_KEY)) {
+    state.template = defaults.template;
+    state.quality = defaults.quality;
+    state.preset = defaults.preset;
+    state.concurrency = defaults.render_concurrency || 2;
+    state.online.llm.provider = defaults.llm.provider;
+    state.online.llm.model = defaults.llm.model;
+    state.online.llm.base_url = defaults.llm.base_url;
+    state.online.asr.provider = defaults.asr.provider === "local" ? "groq" : defaults.asr.provider;
+    state.online.asr.model = defaults.asr.model;
+    state.online.asr.base_url = defaults.asr.base_url;
+    state.local.llm.model = defaults.llm.provider === "ollama" ? defaults.llm.model : "llama3.1:8b";
+    state.local.llm.base_url = LOCAL_BASE.ollama;
+    state.local.asr.model = defaults.asr.provider === "local" ? defaults.asr.model : "base";
+  }
+  if (!state.online.llm.base_url && ONLINE_BASE[state.online.llm.provider]) {
+    state.online.llm.base_url = ONLINE_BASE[state.online.llm.provider];
+  }
+  fillSelect($("quality"), catalog.qualities, state.quality, (q) => `${q.name} — ${q.note}`);
+  fillSelect($("preset"), catalog.presets, state.preset, (p) => p.name);
+  $("preset").title = catalog.presets.find((p) => p.key === state.preset)?.description || "";
+  renderTemplates();
+  applyStateToInputs();
+  updateBanner();
+}
+
+init();
+</script>
+</body>
+</html>
